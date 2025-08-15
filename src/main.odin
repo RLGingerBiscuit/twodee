@@ -10,7 +10,7 @@ when !ODIN_DEBUG {
 	_ :: os
 }
 
-GRID_CELL_COUNT :: 8
+GRID_CELL_COUNT :: 9
 GRID_SIZE :: GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE
 GRID_TILE_OFFSET :: (TILE_SIZE * TILE_SCALE / 2)
 
@@ -23,6 +23,7 @@ Tile :: enum {
 	Grass,
 	Dirt,
 	Stone,
+	Sand,
 }
 
 tile_names := [Tile]string {
@@ -30,6 +31,7 @@ tile_names := [Tile]string {
 	.Grass = "grass.png",
 	.Dirt  = "dirt.png",
 	.Stone = "stone.png",
+	.Sand = "sand.png",
 }
 
 Five_Tile :: enum {
