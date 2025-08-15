@@ -1,0 +1,7 @@
+{
+	"editor.insertSpaces": false,
+	"editor.tabSize": 4,
+	// For JSON
+	"prettier.useTabs": true,
+	"prettier.tabWidth": 4
+}

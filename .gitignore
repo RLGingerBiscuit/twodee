@@ -1,0 +1,11 @@
+bin/
+
+*.so
+*.o
+*.a
+*.dll
+*.obj
+*.lib
+*.exe
+
+*.sublime-workspace
