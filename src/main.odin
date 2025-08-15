@@ -240,7 +240,7 @@ main :: proc() {
 							display_x := world_x + display_dx
 							display_y := world_y + display_dy
 
-							tile_bits: Five_Tile_Bits
+							tile_bits: [Tile]Five_Tile_Bits
 
 							tile_br, tile_br_ok := try_get_tile(
 								tiles[:],
@@ -263,39 +263,50 @@ main :: proc() {
 								display_y - 1,
 							)
 
-							tile_bits |= tile_tl_ok && tile_tl != .None ? {.TL} : {}
-							tile_bits |= tile_bl_ok && tile_bl != .None ? {.BL} : {}
-							tile_bits |= tile_tr_ok && tile_tr != .None ? {.TR} : {}
-							tile_bits |= tile_br_ok && tile_br != .None ? {.BR} : {}
+							if tile_tl == .None &&
+							   tile_bl == .None &&
+							   tile_tr == .None &&
+							   tile_br == .None {continue}
 
-							if tile_bits == {} {continue}
+							tile_bits[tile_tl] |= tile_tl_ok ? {.TL} : {}
+							tile_bits[tile_bl] |= tile_bl_ok ? {.BL} : {}
+							tile_bits[tile_tr] |= tile_tr_ok ? {.TR} : {}
+							tile_bits[tile_br] |= tile_br_ok ? {.BR} : {}
 
-							pos, rot := get_five_tile(tile_bits)
+							tile_bits[.None] = {}
 
-							assert(pos != {-1, -1} && rot != -1)
+							for t in Tile {
+								if tile_bits[t] == {} {
+									continue
+								}
 
-							src := rl.Rectangle {
-								f32(pos.x) * TILE_SIZE,
-								f32(pos.y) * TILE_SIZE,
-								TILE_SIZE,
-								TILE_SIZE,
+								pos, rot := get_five_tile(tile_bits[t])
+								assert(pos != {-1, -1} && rot != -1)
+
+								src := rl.Rectangle {
+									f32(pos.x) * TILE_SIZE,
+									f32(pos.y) * TILE_SIZE,
+									TILE_SIZE,
+									TILE_SIZE,
+								}
+
+								dest := rl.Rectangle {
+									grid_start.x + f32(display_x) * TILE_SIZE * TILE_SCALE,
+									grid_start.y + f32(display_y) * TILE_SIZE * TILE_SCALE,
+									TILE_SIZE * TILE_SCALE,
+									TILE_SIZE * TILE_SCALE,
+								}
+
+								rl.DrawTexturePro(
+									textures[t],
+									src,
+									dest,
+									{GRID_TILE_OFFSET, GRID_TILE_OFFSET},
+									rot,
+									rl.WHITE,
+								)
 							}
 
-							dest := rl.Rectangle {
-								grid_start.x + f32(display_x) * TILE_SIZE * TILE_SCALE,
-								grid_start.y + f32(display_y) * TILE_SIZE * TILE_SCALE,
-								TILE_SIZE * TILE_SCALE,
-								TILE_SIZE * TILE_SCALE,
-							}
-
-							rl.DrawTexturePro(
-								textures[tile],
-								src,
-								dest,
-								{GRID_TILE_OFFSET, GRID_TILE_OFFSET},
-								rot,
-								rl.WHITE,
-							)
 						}
 					}
 
