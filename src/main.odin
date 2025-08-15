@@ -14,8 +14,8 @@ GRID_CELL_COUNT :: 8
 GRID_SIZE :: GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE
 GRID_TILE_OFFSET :: (TILE_SIZE * TILE_SCALE / 2)
 
-TILE_SIZE :: 16
-TILE_SCALE :: 4
+TILE_SIZE :: 32
+TILE_SCALE :: 2
 TILE_DIR := #load_directory("../assets/tiles/")
 
 Tile :: enum {
@@ -144,16 +144,23 @@ main :: proc() {
 	tiles: [(TILE_SIZE + 2) * (TILE_SIZE + 2)]Tile
 	selected_tile: Tile = .Grass
 
+	show_grid := false
+
 	for !rl.WindowShouldClose() {
 		grid_start: rl.Vector2
 
 		{ 	// update
+
+			if rl.IsKeyPressed(.D) {
+				show_grid = !show_grid
+			}
 
 			if rl.IsKeyPressed(.Q) && int(selected_tile) > int(Tile.None) + 1 {
 				selected_tile = cast(Tile)(i32(selected_tile) - 1)
 			} else if rl.IsKeyPressed(.E) && int(selected_tile) < len(Tile) - 1 {
 				selected_tile = cast(Tile)(i32(selected_tile) + 1)
 			}
+
 
 			rw, rh := rl.GetRenderWidth(), rl.GetRenderHeight()
 
@@ -185,48 +192,57 @@ main :: proc() {
 			rl.BeginDrawing()
 			rl.ClearBackground({16, 16, 16, 255})
 
-			rl.DrawText(fmt.ctprintf("Tile: {}", selected_tile), 16, 16, 16, rl.RAYWHITE)
+			rl.DrawText(fmt.ctprintf("Tile: {}", selected_tile), 16, 16, 24, rl.RAYWHITE)
+			rl.DrawText(fmt.ctprintf("Grid: {}", show_grid), 16, 48, 24, rl.RAYWHITE)
 
-			for xy in 0 ..= GRID_CELL_COUNT {
-				// Vertical
-				rl.DrawLineV(
-					grid_start + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
-					grid_start +
-					{GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE, f32(xy) * TILE_SIZE * TILE_SCALE},
-					rl.RAYWHITE,
-				)
-				// Horizontal
-				rl.DrawLineV(
-					grid_start + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
-					grid_start +
-					{f32(xy) * TILE_SIZE * TILE_SCALE, GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE},
-					rl.RAYWHITE,
-				)
-			}
+			if show_grid {
+				for xy in 0 ..= GRID_CELL_COUNT {
+					// Vertical
+					rl.DrawLineV(
+						grid_start + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
+						grid_start +
+						{
+								GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE,
+								f32(xy) * TILE_SIZE * TILE_SCALE,
+							},
+						rl.RAYWHITE,
+					)
+					// Horizontal
+					rl.DrawLineV(
+						grid_start + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
+						grid_start +
+						{
+								f32(xy) * TILE_SIZE * TILE_SCALE,
+								GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE,
+							},
+						rl.RAYWHITE,
+					)
+				}
 
-			for xy in 0 ..= (GRID_CELL_COUNT + 1) {
-				// Vertical
-				rl.DrawLineV(
-					grid_start - (GRID_TILE_OFFSET) + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
-					grid_start -
-					(GRID_TILE_OFFSET) +
-					{
-							(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
-							f32(xy) * TILE_SIZE * TILE_SCALE,
-						},
-					{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
-				)
-				// Horizontal
-				rl.DrawLineV(
-					grid_start - (GRID_TILE_OFFSET) + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
-					grid_start -
-					(GRID_TILE_OFFSET) +
-					{
-							f32(xy) * TILE_SIZE * TILE_SCALE,
-							(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
-						},
-					{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
-				)
+				for xy in 0 ..= (GRID_CELL_COUNT + 1) {
+					// Vertical
+					rl.DrawLineV(
+						grid_start - (GRID_TILE_OFFSET) + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
+						grid_start -
+						(GRID_TILE_OFFSET) +
+						{
+								(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
+								f32(xy) * TILE_SIZE * TILE_SCALE,
+							},
+						{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
+					)
+					// Horizontal
+					rl.DrawLineV(
+						grid_start - (GRID_TILE_OFFSET) + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
+						grid_start -
+						(GRID_TILE_OFFSET) +
+						{
+								f32(xy) * TILE_SIZE * TILE_SCALE,
+								(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
+							},
+						{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
+					)
+				}
 			}
 
 			world: for world_y in 0 ..< GRID_CELL_COUNT {

@@ -9,3 +9,6 @@ bin/
 *.exe
 
 *.sublime-workspace
+
+# Raylib screenshots
+screenshot*.png
