@@ -186,11 +186,13 @@ main :: proc() {
 
 	for !rl.WindowShouldClose() {
 		grid_start: rl.Vector2
+
 		delta := rl.GetFrameTime()
+		rw, rh := rl.GetRenderWidth(), rl.GetRenderHeight()
 
 		{ 	// update
 
-			if rl.IsKeyPressed(.D) {
+			if rl.IsKeyPressed(.G) {
 				show_grid = !show_grid
 			}
 
@@ -229,8 +231,6 @@ main :: proc() {
 			} else if rl.IsKeyPressed(.E) && int(selected_tile) < len(Tile) - 1 {
 				selected_tile = cast(Tile)(i32(selected_tile) + 1)
 			}
-
-			rw, rh := rl.GetRenderWidth(), rl.GetRenderHeight()
 
 			grid_start = {f32(rw - GRID_SIZE) / 2, f32(rh - GRID_SIZE) / 2}
 
@@ -286,45 +286,47 @@ main :: proc() {
 			rl.BeginDrawing()
 			rl.ClearBackground({16, 16, 16, 255})
 
-			rl.DrawText(fmt.ctprintf("Tile: {}", selected_tile), 16, 16, 24, rl.RAYWHITE)
-			rl.DrawText(fmt.ctprintf("Grid: {}", show_grid), 16, 16 + 24, 24, rl.RAYWHITE)
+			DrawTextLayout(
+				16,
+				16,
+				{fmt.ctprintf("Tile: {}", selected_tile), rl.RAYWHITE},
+				{fmt.ctprintf("Grid: {}", show_grid), rl.RAYWHITE},
+			)
+
+			DrawTextLayout(
+				16,
+				rh - 16,
+				{fmt.ctprintf("G : Display Grid"), rl.RAYWHITE},
+				{fmt.ctprintf("Q/E : Prev/Next Tile"), rl.RAYWHITE},
+				{fmt.ctprintf("S/L : Save/Load World"), rl.RAYWHITE},
+				{fmt.ctprintf("Z/Y : Undo/Redo"), rl.RAYWHITE},
+				dir = .Bottom_Up,
+			)
 
 			if export_world_timer > 0 {
 				if export_world_timer < LOAD_SAVE_TIMER_FADE {
 					rl.DrawText(
-						fmt.ctprintf("Exported World"),
+						"Exported World",
 						16,
 						16 + 24 + 24 + 24,
 						24,
 						rl.ColorAlpha(rl.RAYWHITE, export_world_timer / LOAD_SAVE_TIMER_FADE),
 					)
 				} else {
-					rl.DrawText(
-						fmt.ctprintf("Exported World"),
-						16,
-						16 + 24 + 24 + 24,
-						24,
-						rl.RAYWHITE,
-					)
+					rl.DrawText("Exported World", 16, 16 + 24 + 24 + 24, 24, rl.RAYWHITE)
 				}
 				export_world_timer -= delta
 			} else if import_world_timer > 0 {
 				if import_world_timer < LOAD_SAVE_TIMER_FADE {
 					rl.DrawText(
-						fmt.ctprintf("Imported World"),
+						"Imported World",
 						16,
 						16 + 24 + 24 + 24,
 						24,
 						rl.ColorAlpha(rl.RAYWHITE, import_world_timer / LOAD_SAVE_TIMER_FADE),
 					)
 				} else {
-					rl.DrawText(
-						fmt.ctprintf("Imported World"),
-						16,
-						16 + 24 + 24 + 24,
-						24,
-						rl.RAYWHITE,
-					)
+					rl.DrawText("Imported World", 16, 16 + 24 + 24 + 24, 24, rl.RAYWHITE)
 				}
 				import_world_timer -= delta
 			}
