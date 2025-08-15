@@ -1,9 +1,11 @@
 package twodee
 
+import sa "core:container/small_array"
 import "core:encoding/cbor"
 import "core:fmt"
 import "core:mem"
 import "core:os/os2"
+import "core:slice"
 import rl "vendor:raylib"
 
 when !ODIN_DEBUG {
@@ -24,6 +26,8 @@ WORLD_PATH :: "world.td"
 TILE_SIZE :: 32
 TILE_SCALE :: 2
 TILE_DIR := #load_directory("../assets/tiles/")
+
+UNDO_STEPS :: 128
 
 Tile :: enum {
 	None,
@@ -104,6 +108,11 @@ try_get_tile :: proc(world: World, x, y: int) -> (Tile, bool) {
 	return world.tiles[y * world.h + x], true
 }
 
+Undo :: struct {
+	x, y:     int,
+	old, new: Tile,
+}
+
 main :: proc() {
 	when ODIN_DEBUG {
 		tracking_allocator: mem.Tracking_Allocator
@@ -172,6 +181,9 @@ main :: proc() {
 	export_world_timer: f32 = -1
 	import_world_timer: f32 = -1
 
+	undo_stack: sa.Small_Array(UNDO_STEPS, Undo)
+	undo_idx := -1
+
 	for !rl.WindowShouldClose() {
 		grid_start: rl.Vector2
 		delta := rl.GetFrameTime()
@@ -180,6 +192,26 @@ main :: proc() {
 
 			if rl.IsKeyPressed(.D) {
 				show_grid = !show_grid
+			}
+
+			if rl.IsKeyPressed(.C) {
+				slice.fill(world.tiles, Tile.None)
+			}
+
+			if rl.IsKeyPressed(.Z) {
+				if undo_idx >= 0 {
+					undo := sa.get(undo_stack, undo_idx)
+					world.tiles[undo.y * world.w + undo.x] = undo.old
+					undo_idx -= 1
+					fmt.printfln("Undid {} -> {} @ ({}, {})", undo.old, undo.new, undo.x, undo.y)
+				}
+			} else if rl.IsKeyPressed(.Y) {
+				if undo_idx < sa.len(undo_stack) - 1 {
+					undo_idx += 1
+					redo := sa.get(undo_stack, undo_idx)
+					world.tiles[redo.y * world.w + redo.x] = redo.new
+					fmt.printfln("Redid {} -> {} @ ({}, {})", redo.old, redo.new, redo.x, redo.y)
+				}
 			}
 
 			if rl.IsKeyPressed(.S) {
@@ -211,12 +243,38 @@ main :: proc() {
 					   pos.y > grid_start.y + f32(y) * TILE_SIZE * TILE_SCALE &&
 					   pos.y < grid_start.y + f32(y + 1) * TILE_SIZE * TILE_SCALE {
 						tile := &world.tiles[y * world.h + x]
+
+						old_tile := tile^
 						if rl.IsMouseButtonDown(.LEFT) && tile^ != selected_tile {
 							tile^ = selected_tile
 							fmt.printfln("Updated ({}, {}) to {}", x, y, tile^)
 						} else if rl.IsMouseButtonDown(.RIGHT) && tile^ != .None {
 							tile^ = .None
 							fmt.printfln("Updated ({}, {}) to {}", x, y, tile^)
+						}
+						new_tile := tile^
+
+						if old_tile != new_tile {
+							undo := Undo {
+								x   = x,
+								y   = y,
+								old = old_tile,
+								new = new_tile,
+							}
+							if undo_idx == sa.cap(undo_stack) - 1 {
+								// Full
+								sa.ordered_remove(&undo_stack, 0)
+								sa.append(&undo_stack, undo)
+							} else if undo_idx < sa.len(undo_stack) - 1 {
+								// Overwrite
+								sa.resize(&undo_stack, undo_idx + 1)
+								sa.append(&undo_stack, undo)
+								undo_idx += 1
+							} else {
+								// Normal
+								undo_idx = sa.len(undo_stack)
+								sa.append(&undo_stack, undo)
+							}
 						}
 						break outer
 					}
