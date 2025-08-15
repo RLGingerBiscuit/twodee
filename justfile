@@ -12,7 +12,7 @@ debug_suffix := '_debug'
 odin_args := '-vet -vet-cast -vet-tabs -strict-style'
 build_args := odin_args + ' -keep-executable'
 debug_args := build_args + ' -debug'
-release_args := build_args + ' -o:speed'
+release_args := build_args + ' -o:speed -subsystem:windows'
 
 # Default recipe which runs `build-release`
 default: build-release
