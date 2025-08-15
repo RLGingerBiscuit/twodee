@@ -37,15 +37,17 @@ Tile :: enum {
 	Stone,
 	Sand,
 	Water,
+	Bedrock,
 }
 
 tile_names := [Tile]string {
-	.None  = "missing.png",
-	.Grass = "grass.png",
-	.Dirt  = "dirt.png",
-	.Stone = "stone.png",
-	.Sand  = "sand.png",
-	.Water = "water.png",
+	.None    = "missing.png",
+	.Grass   = "grass.png",
+	.Dirt    = "dirt.png",
+	.Stone   = "stone.png",
+	.Sand    = "sand.png",
+	.Water   = "water.png",
+	.Bedrock = "bedrock.png",
 }
 
 Five_Tile :: enum {
