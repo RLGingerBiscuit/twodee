@@ -402,33 +402,15 @@ main :: proc() {
 									continue
 								}
 
-								pos, rot := get_five_tile(tile_bits[t])
-								assert(pos != {-1, -1} && rot != -1)
-
-								src := rl.Rectangle {
-									f32(pos.x) * TILE_SIZE,
-									f32(pos.y) * TILE_SIZE,
-									TILE_SIZE,
-									TILE_SIZE,
-								}
-
-								dest := rl.Rectangle {
-									grid_start.x + f32(display_x) * GRID_TILE_SIZE,
-									grid_start.y + f32(display_y) * GRID_TILE_SIZE,
-									GRID_TILE_SIZE,
-									GRID_TILE_SIZE,
-								}
-
-								rl.DrawTexturePro(
-									textures[t],
-									src,
-									dest,
-									{GRID_TILE_OFFSET, GRID_TILE_OFFSET},
-									rot,
-									rl.WHITE,
+								display_tile(
+									display_x,
+									display_y,
+									t,
+									tile_bits[t],
+									grid_start,
+									textures,
 								)
 							}
-
 						}
 					}
 				}
@@ -569,4 +551,32 @@ import_world :: proc(world: ^World) {
 	}
 
 	fmt.printfln("Loaded world {}x{}", new_world.w, new_world.h)
+}
+
+display_tile :: proc(
+	x, y: int,
+	tile: Tile,
+	bits: Five_Tile_Bits,
+	start: rl.Vector2,
+	textures: [Tile]rl.Texture2D,
+) {
+	pos, rot := get_five_tile(bits)
+
+	src := rl.Rectangle{f32(pos.x) * TILE_SIZE, f32(pos.y) * TILE_SIZE, TILE_SIZE, TILE_SIZE}
+
+	dest := rl.Rectangle {
+		start.x + f32(x) * GRID_TILE_SIZE,
+		start.y + f32(y) * GRID_TILE_SIZE,
+		GRID_TILE_SIZE,
+		GRID_TILE_SIZE,
+	}
+
+	rl.DrawTexturePro(
+		textures[tile],
+		src,
+		dest,
+		{GRID_TILE_OFFSET, GRID_TILE_OFFSET},
+		rot,
+		rl.WHITE,
+	)
 }
