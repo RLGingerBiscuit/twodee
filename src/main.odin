@@ -18,16 +18,18 @@ TILE_SIZE :: 16
 TILE_SCALE :: 4
 TILE_DIR := #load_directory("../assets/tiles/")
 
-tile_names := [Tile]string {
-	.None  = "missing.png",
-	.Grass = "grass.png",
-	.Stone = "stone.png",
-}
-
 Tile :: enum {
 	None,
 	Grass,
+	Dirt,
 	Stone,
+}
+
+tile_names := [Tile]string {
+	.None  = "missing.png",
+	.Grass = "grass.png",
+	.Dirt  = "dirt.png",
+	.Stone = "stone.png",
 }
 
 Five_Tile :: enum {
