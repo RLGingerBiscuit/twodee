@@ -127,7 +127,7 @@ main :: proc() {
 
 	fmt.println("Hellope!")
 
-	rl.SetConfigFlags({.MSAA_4X_HINT, .VSYNC_HINT, .WINDOW_HIGHDPI, .WINDOW_RESIZABLE})
+	rl.SetConfigFlags({.MSAA_4X_HINT, .VSYNC_HINT, .WINDOW_HIGHDPI})
 
 	rl.InitWindow(1280, 720, "Two Dee")
 	defer rl.CloseWindow()
@@ -271,53 +271,6 @@ main :: proc() {
 				import_world_timer -= delta
 			}
 
-			if show_grid {
-				for x in 0 ..= world.h {
-					// Vertical
-					rl.DrawLineV(
-						grid_start + {0, f32(x) * TILE_SIZE * TILE_SCALE},
-						grid_start +
-						{f32(world.h) * TILE_SIZE * TILE_SCALE, f32(x) * TILE_SIZE * TILE_SCALE},
-						rl.RAYWHITE,
-					)
-				}
-
-				for y in 0 ..= world.w {
-					// Horizontal
-					rl.DrawLineV(
-						grid_start + {f32(y) * TILE_SIZE * TILE_SCALE, 0},
-						grid_start +
-						{f32(y) * TILE_SIZE * TILE_SCALE, f32(world.w) * TILE_SIZE * TILE_SCALE},
-						rl.RAYWHITE,
-					)
-				}
-
-				// for xy in 0 ..= (GRID_CELL_COUNT + 1) {
-				// 	// Vertical
-				// 	rl.DrawLineV(
-				// 		grid_start - (GRID_TILE_OFFSET) + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
-				// 		grid_start -
-				// 		(GRID_TILE_OFFSET) +
-				// 		{
-				// 				(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
-				// 				f32(xy) * TILE_SIZE * TILE_SCALE,
-				// 			},
-				// 		{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
-				// 	)
-				// 	// Horizontal
-				// 	rl.DrawLineV(
-				// 		grid_start - (GRID_TILE_OFFSET) + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
-				// 		grid_start -
-				// 		(GRID_TILE_OFFSET) +
-				// 		{
-				// 				f32(xy) * TILE_SIZE * TILE_SCALE,
-				// 				(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
-				// 			},
-				// 		{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
-				// 	)
-				// }
-			}
-
 			for world_y in 0 ..< world.h {
 				for world_x in 0 ..< world.w {
 					tile, tile_ok := try_get_tile(world, world_x, world_y)
@@ -412,6 +365,53 @@ main :: proc() {
 					// 	rl.RED,
 					// )
 				}
+			}
+
+			if show_grid {
+				for x in 0 ..= world.h {
+					// Vertical
+					rl.DrawLineV(
+						grid_start + {0, f32(x) * TILE_SIZE * TILE_SCALE},
+						grid_start +
+						{f32(world.h) * TILE_SIZE * TILE_SCALE, f32(x) * TILE_SIZE * TILE_SCALE},
+						rl.RAYWHITE,
+					)
+				}
+
+				for y in 0 ..= world.w {
+					// Horizontal
+					rl.DrawLineV(
+						grid_start + {f32(y) * TILE_SIZE * TILE_SCALE, 0},
+						grid_start +
+						{f32(y) * TILE_SIZE * TILE_SCALE, f32(world.w) * TILE_SIZE * TILE_SCALE},
+						rl.RAYWHITE,
+					)
+				}
+
+				// for xy in 0 ..= (GRID_CELL_COUNT + 1) {
+				// 	// Vertical
+				// 	rl.DrawLineV(
+				// 		grid_start - (GRID_TILE_OFFSET) + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
+				// 		grid_start -
+				// 		(GRID_TILE_OFFSET) +
+				// 		{
+				// 				(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
+				// 				f32(xy) * TILE_SIZE * TILE_SCALE,
+				// 			},
+				// 		{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
+				// 	)
+				// 	// Horizontal
+				// 	rl.DrawLineV(
+				// 		grid_start - (GRID_TILE_OFFSET) + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
+				// 		grid_start -
+				// 		(GRID_TILE_OFFSET) +
+				// 		{
+				// 				f32(xy) * TILE_SIZE * TILE_SCALE,
+				// 				(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
+				// 			},
+				// 		{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
+				// 	)
+				// }
 			}
 
 			rl.EndDrawing()
