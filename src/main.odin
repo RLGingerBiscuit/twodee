@@ -14,8 +14,10 @@ when !ODIN_DEBUG {
 }
 
 GRID_CELL_COUNT :: 10
-GRID_SIZE :: GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE
-GRID_TILE_OFFSET :: (TILE_SIZE * TILE_SCALE / 2)
+GRID_SIZE :: GRID_CELL_COUNT * GRID_TILE_SIZE
+GRID_TILE_OFFSET :: (GRID_TILE_SIZE / 2)
+GRID_TILE_SCALE :: 2
+GRID_TILE_SIZE :: TILE_SIZE * GRID_TILE_SCALE
 
 // Seconds
 LOAD_SAVE_TIMER :: 2
@@ -24,7 +26,6 @@ LOAD_SAVE_TIMER_FADE :: 0.5
 WORLD_PATH :: "world.td"
 
 TILE_SIZE :: 32
-TILE_SCALE :: 2
 TILE_DIR := #load_directory("../assets/tiles/")
 
 UNDO_STEPS :: 128
@@ -176,8 +177,10 @@ main :: proc() {
 	}
 
 	selected_tile: Tile = .Grass
+	hovered: [2]int
 
 	show_grid := false
+	show_debug_grid := false
 	export_world_timer: f32 = -1
 	import_world_timer: f32 = -1
 
@@ -194,6 +197,9 @@ main :: proc() {
 
 			if rl.IsKeyPressed(.G) {
 				show_grid = !show_grid
+			}
+			if rl.IsKeyPressed(.D) {
+				show_debug_grid = !show_debug_grid
 			}
 
 			if rl.IsKeyPressed(.C) {
@@ -237,46 +243,50 @@ main :: proc() {
 			pos := rl.GetMousePosition()
 			outer: for y in 0 ..< world.h {
 				for x in 0 ..< world.w {
-					if (rl.IsMouseButtonDown(.LEFT) || rl.IsMouseButtonDown(.RIGHT)) &&
-					   pos.x > grid_start.x + f32(x) * TILE_SIZE * TILE_SCALE &&
-					   pos.x < grid_start.x + f32(x + 1) * TILE_SIZE * TILE_SCALE &&
-					   pos.y > grid_start.y + f32(y) * TILE_SIZE * TILE_SCALE &&
-					   pos.y < grid_start.y + f32(y + 1) * TILE_SIZE * TILE_SCALE {
-						tile := &world.tiles[y * world.h + x]
+					if pos.x > grid_start.x + f32(x) * GRID_TILE_SIZE &&
+					   pos.x < grid_start.x + f32(x + 1) * GRID_TILE_SIZE &&
+					   pos.y > grid_start.y + f32(y) * GRID_TILE_SIZE &&
+					   pos.y < grid_start.y + f32(y + 1) * GRID_TILE_SIZE {
+						hovered = {x, y}
 
-						old_tile := tile^
-						if rl.IsMouseButtonDown(.LEFT) && tile^ != selected_tile {
-							tile^ = selected_tile
-							fmt.printfln("Updated ({}, {}) to {}", x, y, tile^)
-						} else if rl.IsMouseButtonDown(.RIGHT) && tile^ != .None {
-							tile^ = .None
-							fmt.printfln("Updated ({}, {}) to {}", x, y, tile^)
-						}
-						new_tile := tile^
+						if rl.IsMouseButtonDown(.LEFT) || rl.IsMouseButtonDown(.RIGHT) {
+							tile := &world.tiles[y * world.h + x]
 
-						if old_tile != new_tile {
-							undo := Undo {
-								x   = x,
-								y   = y,
-								old = old_tile,
-								new = new_tile,
+							old_tile := tile^
+							if rl.IsMouseButtonDown(.LEFT) && tile^ != selected_tile {
+								tile^ = selected_tile
+								fmt.printfln("Updated ({}, {}) to {}", x, y, tile^)
+							} else if rl.IsMouseButtonDown(.RIGHT) && tile^ != .None {
+								tile^ = .None
+								fmt.printfln("Updated ({}, {}) to {}", x, y, tile^)
 							}
-							if undo_idx == sa.cap(undo_stack) - 1 {
-								// Full
-								sa.ordered_remove(&undo_stack, 0)
-								sa.append(&undo_stack, undo)
-							} else if undo_idx < sa.len(undo_stack) - 1 {
-								// Overwrite
-								sa.resize(&undo_stack, undo_idx + 1)
-								sa.append(&undo_stack, undo)
-								undo_idx += 1
-							} else {
-								// Normal
-								undo_idx = sa.len(undo_stack)
-								sa.append(&undo_stack, undo)
+							new_tile := tile^
+
+							if old_tile != new_tile {
+								undo := Undo {
+									x   = x,
+									y   = y,
+									old = old_tile,
+									new = new_tile,
+								}
+								if undo_idx == sa.cap(undo_stack) - 1 {
+									// Full
+									sa.ordered_remove(&undo_stack, 0)
+									sa.append(&undo_stack, undo)
+								} else if undo_idx < sa.len(undo_stack) - 1 {
+									// Overwrite
+									sa.resize(&undo_stack, undo_idx + 1)
+									sa.append(&undo_stack, undo)
+									undo_idx += 1
+								} else {
+									// Normal
+									undo_idx = sa.len(undo_stack)
+									sa.append(&undo_stack, undo)
+								}
 							}
+
+							break outer
 						}
-						break outer
 					}
 				}
 			}
@@ -290,13 +300,21 @@ main :: proc() {
 				16,
 				16,
 				{fmt.ctprintf("Tile: {}", selected_tile), rl.RAYWHITE},
-				{fmt.ctprintf("Grid: {}", show_grid), rl.RAYWHITE},
+				{fmt.ctprintf("Grid: {} / {}", show_grid, show_debug_grid), rl.RAYWHITE},
+				{
+					fmt.ctprintf(
+						"Hovered: {} ({})",
+						hovered,
+						world.tiles[hovered.y * world.h + hovered.x],
+					),
+					rl.RAYWHITE,
+				},
 			)
 
 			DrawTextLayout(
 				16,
 				rh - 16,
-				{fmt.ctprintf("G : Display Grid"), rl.RAYWHITE},
+				{fmt.ctprintf("G/D : Display (Debug) Grid"), rl.RAYWHITE},
 				{fmt.ctprintf("Q/E : Prev/Next Tile"), rl.RAYWHITE},
 				{fmt.ctprintf("S/L : Save/Load World"), rl.RAYWHITE},
 				{fmt.ctprintf("Z/Y : Undo/Redo"), rl.RAYWHITE},
@@ -395,10 +413,10 @@ main :: proc() {
 								}
 
 								dest := rl.Rectangle {
-									grid_start.x + f32(display_x) * TILE_SIZE * TILE_SCALE,
-									grid_start.y + f32(display_y) * TILE_SIZE * TILE_SCALE,
-									TILE_SIZE * TILE_SCALE,
-									TILE_SIZE * TILE_SCALE,
+									grid_start.x + f32(display_x) * GRID_TILE_SIZE,
+									grid_start.y + f32(display_y) * GRID_TILE_SIZE,
+									GRID_TILE_SIZE,
+									GRID_TILE_SIZE,
 								}
 
 								rl.DrawTexturePro(
@@ -420,35 +438,32 @@ main :: proc() {
 				for x in 0 ..= world.h {
 					// Vertical
 					rl.DrawLineV(
-						grid_start + {0, f32(x) * TILE_SIZE * TILE_SCALE},
-						grid_start +
-						{f32(world.h) * TILE_SIZE * TILE_SCALE, f32(x) * TILE_SIZE * TILE_SCALE},
-						rl.RAYWHITE,
+						grid_start + {0, f32(x) * GRID_TILE_SIZE},
+						grid_start + {f32(world.h) * GRID_TILE_SIZE, f32(x) * GRID_TILE_SIZE},
+						rl.GREEN,
 					)
 				}
 
 				for y in 0 ..= world.w {
 					// Horizontal
 					rl.DrawLineV(
-						grid_start + {f32(y) * TILE_SIZE * TILE_SCALE, 0},
-						grid_start +
-						{f32(y) * TILE_SIZE * TILE_SCALE, f32(world.w) * TILE_SIZE * TILE_SCALE},
-						rl.RAYWHITE,
+						grid_start + {f32(y) * GRID_TILE_SIZE, 0},
+						grid_start + {f32(y) * GRID_TILE_SIZE, f32(world.w) * GRID_TILE_SIZE},
+						rl.GREEN,
 					)
 				}
+			}
 
+			if show_debug_grid {
 				offset_colour := rl.ColorAlpha(rl.BLUE, 0.5)
 
 				for x in 0 ..= (world.h + 1) {
 					// Vertical
 					rl.DrawLineV(
-						grid_start - GRID_TILE_OFFSET + {0, f32(x) * TILE_SIZE * TILE_SCALE},
+						grid_start - GRID_TILE_OFFSET + {0, f32(x) * GRID_TILE_SIZE},
 						grid_start -
 						GRID_TILE_OFFSET +
-						{
-								f32(world.h + 1) * TILE_SIZE * TILE_SCALE,
-								f32(x) * TILE_SIZE * TILE_SCALE,
-							},
+						{f32(world.h + 1) * GRID_TILE_SIZE, f32(x) * GRID_TILE_SIZE},
 						offset_colour,
 					)
 				}
@@ -456,17 +471,24 @@ main :: proc() {
 				for y in 0 ..= (world.w + 1) {
 					// Horizontal
 					rl.DrawLineV(
-						grid_start - GRID_TILE_OFFSET + {f32(y) * TILE_SIZE * TILE_SCALE, 0},
+						grid_start - GRID_TILE_OFFSET + {f32(y) * GRID_TILE_SIZE, 0},
 						grid_start -
 						GRID_TILE_OFFSET +
-						{
-								f32(y) * TILE_SIZE * TILE_SCALE,
-								f32(world.w + 1) * TILE_SIZE * TILE_SCALE,
-							},
+						{f32(y) * GRID_TILE_SIZE, f32(world.w + 1) * GRID_TILE_SIZE},
 						offset_colour,
 					)
 				}
 			}
+
+			// Selected indicator
+			rl.DrawRectangleLines(
+				i32(grid_start.x + f32(hovered.x) * GRID_TILE_SIZE),
+				i32(grid_start.y + f32(hovered.y) * GRID_TILE_SIZE),
+				GRID_TILE_SIZE,
+				GRID_TILE_SIZE,
+				rl.RAYWHITE,
+			)
+
 
 			rl.EndDrawing()
 
