@@ -1,18 +1,21 @@
 package twodee
 
+import "core:encoding/cbor"
 import "core:fmt"
 import "core:mem"
-import "core:os"
+import "core:os/os2"
 import rl "vendor:raylib"
 
 when !ODIN_DEBUG {
 	_ :: mem
-	_ :: os
+	_ :: os2
 }
 
-GRID_CELL_COUNT :: 9
+GRID_CELL_COUNT :: 10
 GRID_SIZE :: GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE
 GRID_TILE_OFFSET :: (TILE_SIZE * TILE_SCALE / 2)
+
+WORLD_PATH :: "world.td"
 
 TILE_SIZE :: 32
 TILE_SCALE :: 2
@@ -90,11 +93,11 @@ get_five_tile :: proc(bits: Five_Tile_Bits) -> (pos: [2]int, rot: f32) {
 	return tile.pos, tile.rot
 }
 
-try_get_tile :: proc(tiles: []Tile, x, y: int) -> (Tile, bool) {
-	if x < 0 || x >= GRID_CELL_COUNT || y < 0 || y >= GRID_CELL_COUNT {
+try_get_tile :: proc(world: World, x, y: int) -> (Tile, bool) {
+	if x < 0 || x >= world.w || y < 0 || y >= world.h {
 		return {}, false
 	}
-	return tiles[y * GRID_CELL_COUNT + x], true
+	return world.tiles[y * world.h + x], true
 }
 
 main :: proc() {
@@ -145,7 +148,20 @@ main :: proc() {
 		}
 	}
 
-	tiles: [(TILE_SIZE + 2) * (TILE_SIZE + 2)]Tile
+	world: World
+	if os2.exists(WORLD_PATH) {
+		import_world(&world)
+	} else {
+		world = {
+			w     = GRID_CELL_COUNT,
+			h     = GRID_CELL_COUNT,
+			tiles = make([]Tile, GRID_CELL_COUNT * GRID_CELL_COUNT),
+		}
+	}
+	defer {
+		delete(world.tiles)
+	}
+
 	selected_tile: Tile = .Grass
 
 	show_grid := false
@@ -157,6 +173,12 @@ main :: proc() {
 
 			if rl.IsKeyPressed(.D) {
 				show_grid = !show_grid
+			}
+
+			if rl.IsKeyPressed(.S) {
+				export_world(world)
+			} else if rl.IsKeyPressed(.L) {
+				import_world(&world)
 			}
 
 			if rl.IsKeyPressed(.Q) && int(selected_tile) > int(Tile.None) + 1 {
@@ -171,14 +193,14 @@ main :: proc() {
 			grid_start = {f32(rw - GRID_SIZE) / 2, f32(rh - GRID_SIZE) / 2}
 
 			pos := rl.GetMousePosition()
-			outer: for y in 0 ..< GRID_CELL_COUNT {
-				for x in 0 ..< GRID_CELL_COUNT {
+			outer: for y in 0 ..< world.h {
+				for x in 0 ..< world.w {
 					if (rl.IsMouseButtonDown(.LEFT) || rl.IsMouseButtonDown(.RIGHT)) &&
 					   pos.x > grid_start.x + f32(x) * TILE_SIZE * TILE_SCALE &&
 					   pos.x < grid_start.x + f32(x + 1) * TILE_SIZE * TILE_SCALE &&
 					   pos.y > grid_start.y + f32(y) * TILE_SIZE * TILE_SCALE &&
 					   pos.y < grid_start.y + f32(y + 1) * TILE_SIZE * TILE_SCALE {
-						tile := &tiles[y * GRID_CELL_COUNT + x]
+						tile := &world.tiles[y * world.h + x]
 						if rl.IsMouseButtonDown(.LEFT) && tile^ != selected_tile {
 							tile^ = selected_tile
 							fmt.printfln("Updated ({}, {}) to {}", x, y, tile^)
@@ -200,64 +222,61 @@ main :: proc() {
 			rl.DrawText(fmt.ctprintf("Grid: {}", show_grid), 16, 48, 24, rl.RAYWHITE)
 
 			if show_grid {
-				for xy in 0 ..= GRID_CELL_COUNT {
+				for x in 0 ..= world.h {
 					// Vertical
 					rl.DrawLineV(
-						grid_start + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
+						grid_start + {0, f32(x) * TILE_SIZE * TILE_SCALE},
 						grid_start +
-						{
-								GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE,
-								f32(xy) * TILE_SIZE * TILE_SCALE,
-							},
-						rl.RAYWHITE,
-					)
-					// Horizontal
-					rl.DrawLineV(
-						grid_start + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
-						grid_start +
-						{
-								f32(xy) * TILE_SIZE * TILE_SCALE,
-								GRID_CELL_COUNT * TILE_SIZE * TILE_SCALE,
-							},
+						{f32(world.h) * TILE_SIZE * TILE_SCALE, f32(x) * TILE_SIZE * TILE_SCALE},
 						rl.RAYWHITE,
 					)
 				}
 
-				for xy in 0 ..= (GRID_CELL_COUNT + 1) {
-					// Vertical
-					rl.DrawLineV(
-						grid_start - (GRID_TILE_OFFSET) + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
-						grid_start -
-						(GRID_TILE_OFFSET) +
-						{
-								(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
-								f32(xy) * TILE_SIZE * TILE_SCALE,
-							},
-						{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
-					)
+				for y in 0 ..= world.w {
 					// Horizontal
 					rl.DrawLineV(
-						grid_start - (GRID_TILE_OFFSET) + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
-						grid_start -
-						(GRID_TILE_OFFSET) +
-						{
-								f32(xy) * TILE_SIZE * TILE_SCALE,
-								(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
-							},
-						{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
+						grid_start + {f32(y) * TILE_SIZE * TILE_SCALE, 0},
+						grid_start +
+						{f32(y) * TILE_SIZE * TILE_SCALE, f32(world.w) * TILE_SIZE * TILE_SCALE},
+						rl.RAYWHITE,
 					)
 				}
+
+				// for xy in 0 ..= (GRID_CELL_COUNT + 1) {
+				// 	// Vertical
+				// 	rl.DrawLineV(
+				// 		grid_start - (GRID_TILE_OFFSET) + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
+				// 		grid_start -
+				// 		(GRID_TILE_OFFSET) +
+				// 		{
+				// 				(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
+				// 				f32(xy) * TILE_SIZE * TILE_SCALE,
+				// 			},
+				// 		{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
+				// 	)
+				// 	// Horizontal
+				// 	rl.DrawLineV(
+				// 		grid_start - (GRID_TILE_OFFSET) + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
+				// 		grid_start -
+				// 		(GRID_TILE_OFFSET) +
+				// 		{
+				// 				f32(xy) * TILE_SIZE * TILE_SCALE,
+				// 				(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
+				// 			},
+				// 		{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
+				// 	)
+				// }
 			}
 
-			world: for world_y in 0 ..< GRID_CELL_COUNT {
-				for world_x in 0 ..< GRID_CELL_COUNT {
-					tile, tile_ok := try_get_tile(tiles[:], world_x, world_y)
+			for world_y in 0 ..< world.h {
+				for world_x in 0 ..< world.w {
+					tile, tile_ok := try_get_tile(world, world_x, world_y)
 					assert(tile_ok)
 					if tile == .None {
 						continue
 					}
 
-					display: for display_dy in 0 ..< 2 {
+					for display_dy in 0 ..< 2 {
 						for display_dx in 0 ..< 2 {
 							display_x := world_x + display_dx
 							display_y := world_y + display_dy
@@ -265,22 +284,22 @@ main :: proc() {
 							tile_bits: [Tile]Five_Tile_Bits
 
 							tile_br, tile_br_ok := try_get_tile(
-								tiles[:],
+								world,
 								display_x - 0,
 								display_y - 0,
 							)
 							tile_tr, tile_tr_ok := try_get_tile(
-								tiles[:],
+								world,
 								display_x - 0,
 								display_y - 1,
 							)
 							tile_bl, tile_bl_ok := try_get_tile(
-								tiles[:],
+								world,
 								display_x - 1,
 								display_y - 0,
 							)
 							tile_tl, tile_tl_ok := try_get_tile(
-								tiles[:],
+								world,
 								display_x - 1,
 								display_y - 1,
 							)
@@ -352,11 +371,76 @@ main :: proc() {
 					fmt.eprintfln("Bad free {} at {}\n", bad_free.memory, bad_free.location)
 				}
 				if len(tracking_allocator.bad_free_array) > 0 {
-					os.exit(1)
+					os2.exit(1)
 				}
 				clear(&tracking_allocator.bad_free_array)
 			}
 			free_all(context.temp_allocator)
 		}
 	}
+}
+
+World :: struct {
+	w:     int,
+	h:     int,
+	tiles: []Tile,
+}
+
+export_world :: proc(world: World) {
+	if world.w == 0 || world.h == 0 {return}
+
+	file, err := os2.open(WORLD_PATH, {.Write, .Create})
+	if err != nil {
+		fmt.eprintln("Could not save world:", err)
+		return
+	}
+	defer os2.close(file)
+
+	writer := os2.to_writer(file)
+
+	cbor_err := cbor.marshal_into_writer(writer, world)
+	if cbor_err != nil {
+		fmt.eprintln("Could not save world:", cbor_err)
+		return
+	}
+
+	fmt.printfln("Saved world {}x{}", world.w, world.h)
+}
+
+import_world :: proc(world: ^World) {
+	file, err := os2.open(WORLD_PATH)
+	if err != nil {
+		fmt.eprintln("Could not load world:", err)
+		return
+	}
+	defer os2.close(file)
+
+	reader := os2.to_reader(file)
+
+	new_world: World
+
+	cbor_err := cbor.unmarshal_from_reader(reader, &new_world)
+	if cbor_err != nil {
+		fmt.eprintln("Could not load world:", cbor_err)
+		return
+	}
+
+	if world != nil && world.w == new_world.w && world.h == new_world.h {
+		if len(world.tiles) > 0 {
+			delete(world.tiles)
+		}
+		world^ = new_world
+	} else {
+		defer delete(new_world.tiles)
+		world.w = max(world.w, new_world.w)
+		world.h = max(world.h, new_world.h)
+		world.tiles = make([]Tile, world.w * world.h)
+		min_w := min(world.w, new_world.w)
+		min_h := min(world.h, new_world.h)
+		for y in 0 ..< min_h {
+			copy(world.tiles[y * min_h:][:min_w], new_world.tiles[y * min_h:][:min_w])
+		}
+	}
+
+	fmt.printfln("Loaded world {}x{}", new_world.w, new_world.h)
 }

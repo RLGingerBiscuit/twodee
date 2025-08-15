@@ -12,3 +12,6 @@ bin/
 
 # Raylib screenshots
 screenshot*.png
+
+# World files
+*.td
