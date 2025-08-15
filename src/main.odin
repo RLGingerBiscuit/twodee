@@ -353,17 +353,6 @@ main :: proc() {
 
 						}
 					}
-
-					// rl.DrawRectangleLinesEx(
-					// 	{
-					// 		grid_start.x + f32(world_x) * TILE_SIZE * TILE_SCALE,
-					// 		grid_start.y + f32(world_y) * TILE_SIZE * TILE_SCALE,
-					// 		TILE_SIZE * TILE_SCALE,
-					// 		TILE_SIZE * TILE_SCALE,
-					// 	},
-					// 	2,
-					// 	rl.RED,
-					// )
 				}
 			}
 
@@ -388,30 +377,35 @@ main :: proc() {
 					)
 				}
 
-				// for xy in 0 ..= (GRID_CELL_COUNT + 1) {
-				// 	// Vertical
-				// 	rl.DrawLineV(
-				// 		grid_start - (GRID_TILE_OFFSET) + {0, f32(xy) * TILE_SIZE * TILE_SCALE},
-				// 		grid_start -
-				// 		(GRID_TILE_OFFSET) +
-				// 		{
-				// 				(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
-				// 				f32(xy) * TILE_SIZE * TILE_SCALE,
-				// 			},
-				// 		{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
-				// 	)
-				// 	// Horizontal
-				// 	rl.DrawLineV(
-				// 		grid_start - (GRID_TILE_OFFSET) + {f32(xy) * TILE_SIZE * TILE_SCALE, 0},
-				// 		grid_start -
-				// 		(GRID_TILE_OFFSET) +
-				// 		{
-				// 				f32(xy) * TILE_SIZE * TILE_SCALE,
-				// 				(GRID_CELL_COUNT + 1) * TILE_SIZE * TILE_SCALE,
-				// 			},
-				// 		{rl.BLUE.r, rl.BLUE.g, rl.BLUE.g, 100},
-				// 	)
-				// }
+				offset_colour := rl.ColorAlpha(rl.BLUE, 0.5)
+
+				for x in 0 ..= (world.h + 1) {
+					// Vertical
+					rl.DrawLineV(
+						grid_start - GRID_TILE_OFFSET + {0, f32(x) * TILE_SIZE * TILE_SCALE},
+						grid_start -
+						GRID_TILE_OFFSET +
+						{
+								f32(world.h + 1) * TILE_SIZE * TILE_SCALE,
+								f32(x) * TILE_SIZE * TILE_SCALE,
+							},
+						offset_colour,
+					)
+				}
+
+				for y in 0 ..= (world.w + 1) {
+					// Horizontal
+					rl.DrawLineV(
+						grid_start - GRID_TILE_OFFSET + {f32(y) * TILE_SIZE * TILE_SCALE, 0},
+						grid_start -
+						GRID_TILE_OFFSET +
+						{
+								f32(y) * TILE_SIZE * TILE_SCALE,
+								f32(world.w + 1) * TILE_SIZE * TILE_SCALE,
+							},
+						offset_colour,
+					)
+				}
 			}
 
 			rl.EndDrawing()
