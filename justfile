@@ -2,18 +2,17 @@ set shell := ['bash', '-uc']
 set windows-shell := ['cmd', '/c']
 
 name := 'twodee'
-out_dir := 'bin'
 src_dir := 'src'
+out_dir := 'bin'
 
 # These shouldn't need to be changed
 ext := if os_family() == 'windows' { '.exe' } else { '' }
-odin_exe := 'odin'
 debug_suffix := '_debug'
+odin_exe := 'odin'
 odin_args := '-vet -vet-cast -vet-tabs -strict-style'
 build_args := odin_args + ' -keep-executable'
 debug_args := build_args + ' -debug'
 release_args := build_args + ' -o:speed -subsystem:windows'
-
 # Default recipe which runs `build-release`
 default: build-release
 
